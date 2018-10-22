@@ -1,0 +1,37 @@
+bph:
+    version: '1 revA'
+    configuration:
+        gpio:
+            usr_btn:
+              - sch: 'USER_BTN'
+                pin: 19
+            heartbeat:
+                sch: 'LED0'
+                pin: 22
+            boot:
+              - sch: 'BOOT0'
+                pin: 13,
+              - sch: 'BOOT1'
+                pin: 16
+            usb_en:
+                sch: 'USB_EN'
+                pin: 26
+            ext_v_en: 
+                sch: 'EXT_V_EN'
+                pin: 18
+            bp_rst:
+                sch: 'BP_RST'
+                pin: 20
+            debug:
+              - sch: 'DEBUG0'
+                pin: 23
+              - sch: 'DEBUG1'
+                pin: 24
+              - sch: 'DEBUG2'
+                pin: 25
+            power_meas_hi_trig: 
+                sch: 'RPI_HI_TRIG'
+                pin: 4
+            power_meas_lo_trig: 
+                sch: 'RPI_LO_TRIG'
+                pin: 27
