@@ -17,7 +17,7 @@ class PowerManagement:
         self.power_conf = conf
 
         # check what pin needs to be turn on and which off
-        on, off = [self.usb_pin, self.ext_pin] if conf == 'USB' else
+        on, off = [self.usb_pin, self.ext_pin] if conf == 'USB' else \
                   [self.ext_pin, self.usb_pin]
         
         wpi.digitalWrite(off, wpi.GPIO.LOW)
