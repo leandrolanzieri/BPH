@@ -2,6 +2,9 @@ import yaml
 from datetime import datetime
 from debug_pin import DebugPin
 from heartbeat import HeartBeat
+from power_management import PowerManagement
+from time import sleep
+import wiringpi as wpi
 
 class BPH_API():
     def __init__(self, conf_path='../BPH-1A/bph_conf.yaml'):
@@ -19,11 +22,19 @@ class BPH_API():
         for idx, debug in enumerate(self.gpio_conf['debug']):
             self.debug_pins.append(DebugPin(debug['pin'], 'debug ' + str(idx)))
 
+        # initialize BP reset
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.OUTPUT)
+
+        # initialize power management module
+        self.power_management = PowerManagement( \
+                    self.gpio_conf['usb_en']['pin'],\
+                    self.gpio_conf['ext_v_en']['pin'])
+
     def debug_pin_set_mode(self, pin_number, mode):
         """Sets the mode for a debug pin.
             Args:
-                pin_number: Number of the debug pin.
-                mode: One of the modes available in DebugPin class
+                pin_number (int): Number of the debug pin.
+                mode (int): One of the modes available in DebugPin class
                         -DebugPin.RPI_out
                         -DebugPin.BP_out
                         -DebugPin.DUT_out
@@ -35,12 +46,17 @@ class BPH_API():
            pin is in DebugPin.RPI_out mode.
 
            Args:
-                pin_number: Number of the debug pin.
-                state: State for the pin, either 'high' or 'low'.
+                pin_number (int): Number of the debug pin.
+                state (int): State for the pin, either 'high' or 'low'.
         """
         self.debug_pins[pin_number].set_pin_state(state)
 
     def debug_pin_get_info(self, pin_number):
+        """Returns information about a specific debug pin.
+
+            Args:
+                pin_number (int): Number of the debug pin.
+        """
         return self.debug_pins[pin_number].get_gpio_info()
 
     def bp_hb_is_alive(self, min_time_s=1):
@@ -55,3 +71,26 @@ class BPH_API():
         """
         return self.heartbeat.is_alive(min_time_s)
 
+    def bp_reset(self, sleep_ms = 10):
+        """Perfoms a reset on the blue pill board for an specified amount of
+        time.
+
+            Args:
+                sleep_ms (int, optional): Amount of time to reset the blue pill
+                expressed in milliseconds.
+        """
+        wpi.digitalWrite(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.LOW)
+        sleep(sleep_ms / 1000)
+        wpi.digitalWrite(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.HIGH)
+    
+    def dut_power_set_conf(self, conf = 'USB'):
+        self.power_management.set_power_conf(conf)
+
+    def dut_reset_soft(self, sleep_ms = 10):
+        raise NotImplementedError
+
+    def dut_reset_hard(self, sleep_ms = 10):
+        self.power_management.set_power_state('OFF')
+        sleep(sleep_ms / 1000)
+        self.power_management.set_power_state('ON')
+        
