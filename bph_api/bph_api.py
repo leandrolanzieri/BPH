@@ -41,6 +41,9 @@ class BPH_API():
                     -DebugPin.DUT_out
         """
         self.debug_pins[pin_number].set_pin_mode(mode)
+        return self._build_response('debug_pin_set_mode({},{})' \
+                                    .format(pin_number, mode), \
+                                    None, 'SUCCESS')
 
     def debug_pin_set_state(self, pin_number, state):
         """Sets the state of a debug pin. Note that this can only be done when a
@@ -51,6 +54,9 @@ class BPH_API():
             state (int): State for the pin, either 'high' or 'low'.
         """
         self.debug_pins[pin_number].set_pin_state(state)
+        return self._build_response('debug_pin_set_mode({},{})' \
+                                    .format(pin_number, state), \
+                                    None, 'SUCCESS')
 
     def debug_pin_get_info(self, pin_number):
         """Returns information about a specific debug pin.
@@ -58,7 +64,10 @@ class BPH_API():
             Args:
                 pin_number (int): Number of the debug pin.
         """
-        return self.debug_pins[pin_number].get_gpio_info()
+        data = self.debug_pins[pin_number].get_gpio_info()
+        return self._build_response('debug_pin_get_info({})' \
+                                    .format(pin_number), \
+                                    data, 'SUCCESS')
 
     def bp_hb_is_alive(self, min_time_s=1):
         """Verifies if the blue pill is alive by verifying the time of the last
@@ -86,6 +95,9 @@ class BPH_API():
         sleep(sleep_ms / 1000)
         wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
 
+        return self._build_response('bp_reset({})'.format(sleep_ms), None, \
+                                    'SUCCESS')
+
     def dut_reset_soft(self, sleep_ms = 10):
         raise NotImplementedError
 
@@ -99,6 +111,8 @@ class BPH_API():
         self.power_management.set_power_state('OFF')
         sleep(sleep_ms / 1000)
         self.power_management.set_power_state('ON')
+        return self._build_response('dut_reset_hard({})'.format(sleep_ms), \
+                                    None, 'SUCCESS')
 
     def reset_full(self, sleep_ms = 100):
         """Performs a guaranteed power reset for the DUT and the blue pill
@@ -114,6 +128,9 @@ class BPH_API():
         sleep(sleep_ms / 1000)
         self.power_management.set_power_state('ON')
         wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
+
+        return self._build_response('reset_full({})'.format(sleep_ms), \
+                                    None, 'SUCCESS')
 
     def dut_power_set_conf(self, conf):
         """Sets the power configuration (i.e. the power source) for the DUT.
@@ -136,6 +153,15 @@ class BPH_API():
         raise NotImplementedError
 
     def _build_response(self, cmd, data, result, msg = ''):
+        """Returns a formatted response according to the Philip Test specs.
+
+        Args:
+            cmd (str): Executed command, including arguments
+            data (any): Information received from the command
+            result (str): Result of the command. Any of 'SUCCESS', 'ERROR',
+                'TIMEOUT'.
+            msg (str, optional): Result of the execution of the command
+        """
         assert result in ('SUCCESS', 'ERROR', 'TIMEOUT'), \
                           'Invalid result: {}'.format(result)
         res = {}
