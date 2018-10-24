@@ -20,7 +20,7 @@ class BPH_API():
         # create debug pins
         self.debug_pins = []
         for idx, debug in enumerate(self.gpio_conf['debug']):
-            self.debug_pins.append(DebugPin(debug['pin'], 'debug ' + str(idx)))
+            self.debug_pins.append(DebugPin(debug['pin'],'DUT_out', 'debug ' + str(idx)))
 
         # initialize BP reset as input, so BP can reset itself
         wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
@@ -35,10 +35,7 @@ class BPH_API():
             
         Args:
             pin_number (int): Number of the debug pin.
-            mode (int): One of the modes available in DebugPin class
-                    -DebugPin.RPI_out
-                    -DebugPin.BP_out
-                    -DebugPin.DUT_out
+            mode (str): Mode of the pin. Any of 'RPI_out', 'DUT_out', 'BP_out'
         """
         self.debug_pins[pin_number].set_pin_mode(mode)
         return self._build_response('debug_pin_set_mode({},{})' \
@@ -47,7 +44,7 @@ class BPH_API():
 
     def debug_pin_set_state(self, pin_number, state):
         """Sets the state of a debug pin. Note that this can only be done when a
-        pin is in DebugPin.RPI_out mode.
+        pin is in 'RPI_out' mode.
 
         Args:
             pin_number (int): Number of the debug pin.
