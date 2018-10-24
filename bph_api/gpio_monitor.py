@@ -13,16 +13,19 @@ class GpioMonitor():
         return self.gpio
 
     def set_gpio_state(self, state):
-        if self.gpio['mode'] == 'output':
-            previous = 'high' if wpi.digitalRead(self.gpio) else 'low'
-            wpi.digitalWrite(self.gpio, state == 'high')
+        assert state in ('LOW', 'HIGH'), 'Invalid GPIO state {}' \
+                                             .format(state)
+        if self.gpio['mode'] == 'OUTPUT':
+            previous = 'HIGH' if wpi.digitalRead(self.gpio['gpio']) else 'LOW'
+            wpi.digitalWrite(self.gpio['gpio'], state == 'HIGH')
             
             if previous != state:
-                _log_event(state)
+                self._log_event(state)
     
     def set_gpio_mode(self, mode):
+        assert mode in ('OUTPUT', 'INPUT')
         # check correct mode
-        if mode == 'output':
+        if mode == 'OUTPUT':
             self._set_gpio_output()
         else:
             self._set_gpio_input()
@@ -35,20 +38,20 @@ class GpioMonitor():
         self.gpio = {'name': name, 'gpio': gpio}
         self.gpio['events'] = collections.deque(maxlen=log_buffer)
 
-        if mode == 'input':
+        if mode == 'INPUT':
             self._set_gpio_input()
         else:
             self._set_gpio_output()
 
     def _set_gpio_input(self):
-        self.gpio['mode'] = 'input'
+        self.gpio['mode'] = 'INPUT'
         wpi.pinMode(self.gpio['gpio'], wpi.GPIO.INPUT)
         wpi.wiringPiISR(self.gpio['gpio'], wpi.GPIO.INT_EDGE_BOTH,
                         self._gpio_cb)
         self._log_event('mode_change')
 
     def _set_gpio_output(self):
-        self.gpio['mode'] = 'output'
+        self.gpio['mode'] = 'OUTPUT'
         wpi.pinMode(self.gpio['gpio'], wpi.GPIO.OUTPUT)
         self._log_event('mode_change')
 
