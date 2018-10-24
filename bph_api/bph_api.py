@@ -69,6 +69,18 @@ class BPH_API():
                                     .format(pin_number), \
                                     data, 'SUCCESS')
 
+    def bp_hb_get_state(self):
+        """Returns the current state of the heartbeat pin.
+        """
+        data = self.heartbeat.get_state()
+        return self._build_response('bp_hb_get_state()', data, 'SUCCESS')
+
+    def bp_hb_get_last(self):
+        """Returns a timestamp with the last known heartbeat.
+        """
+        data = self.heartbeat.get_last()
+        return self._build_response('bp_hb_get_last()', data, 'SUCCESS')
+
     def bp_hb_is_alive(self, min_time_s=1):
         """Verifies if the blue pill is alive by verifying the time of the last
         heartbeat.

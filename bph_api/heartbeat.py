@@ -8,3 +8,9 @@ class HeartBeat(GpioMonitor):
     def is_alive(self, min_time_s = 1):
         delta = datetime.now() - self.gpio['last_event']['time']
         return delta.total_seconds() <= min_time_s
+
+    def get_state(self):
+        return self.get_gpio_info()['state']
+
+    def get_last(self):
+        return self.gpio['last_event']['time']
