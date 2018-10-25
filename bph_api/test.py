@@ -4,7 +4,10 @@ from bph_api import BPH_API as bph
 if __name__ == '__main__':
     hat = bph()
 
+    print(hat.dut_power_set_conf('USB'))
+    
     while True:
-        hat.bp_reset()
-        sleep(1)
-        print(hat.bp_hb_is_alive())
+        print("Reset Hard")
+        hat.dut_reset_hard(sleep_ms = 50)
+        sleep(5)
+

@@ -2,6 +2,7 @@ import yaml
 from datetime import datetime
 from debug_pin import DebugPin
 from heartbeat import HeartBeat
+from power_management import PowerManagement
 from time import sleep
 import wiringpi as wpi
 
@@ -21,27 +22,33 @@ class BPH_API():
         for idx, debug in enumerate(self.gpio_conf['debug']):
             self.debug_pins.append(DebugPin(debug['pin'], 'debug ' + str(idx)))
 
-        # initialize BP reset
-        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.OUTPUT)
+        # initialize BP reset as input, so BP can reset itself
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
+
+        # initialize power management module
+        self.power_management = PowerManagement( \
+                    self.gpio_conf['usb_en']['pin'],\
+                    self.gpio_conf['ext_v_en']['pin'])
 
     def debug_pin_set_mode(self, pin_number, mode):
         """Sets the mode for a debug pin.
-            Args:
-                pin_number (int): Number of the debug pin.
-                mode (int): One of the modes available in DebugPin class
-                        -DebugPin.RPI_out
-                        -DebugPin.BP_out
-                        -DebugPin.DUT_out
+            
+        Args:
+            pin_number (int): Number of the debug pin.
+            mode (int): One of the modes available in DebugPin class
+                    -DebugPin.RPI_out
+                    -DebugPin.BP_out
+                    -DebugPin.DUT_out
         """
         self.debug_pins[pin_number].set_pin_mode(mode)
 
     def debug_pin_set_state(self, pin_number, state):
         """Sets the state of a debug pin. Note that this can only be done when a
-           pin is in DebugPin.RPI_out mode.
+        pin is in DebugPin.RPI_out mode.
 
-           Args:
-                pin_number (int): Number of the debug pin.
-                state (int): State for the pin, either 'high' or 'low'.
+        Args:
+            pin_number (int): Number of the debug pin.
+            state (int): State for the pin, either 'high' or 'low'.
         """
         self.debug_pins[pin_number].set_pin_state(state)
 
@@ -57,43 +64,84 @@ class BPH_API():
         """Verifies if the blue pill is alive by verifying the time of the last
         heartbeat.
 
-            Args:
-                min_time_s (int, optional): Minimum seconds since last heartbeat
+        Args:
+            min_time_s (int, optional): Minimum seconds since last heartbeat
 
-            Returns:
-                bool: True if is alive. False otherwise.
+        Returns:
+            bool: True if is alive. False otherwise.
         """
-        return self.heartbeat.is_alive(min_time_s)
+        data = self.heartbeat.is_alive(min_time_s)
+        return self._build_response('bp_hb_is_alive({})'.format(min_time_s),
+                                    data, 'checking if BP is there', 'SUCCESS')
 
     def bp_reset(self, sleep_ms = 10):
-        """Perfoms a reset on the blue pill board for an specified amount of
-        time.
+        """Perfoms a reset on the blue pill board for an specified time.
 
-            Args:
-                sleep_ms (int, optional): Amount of time to reset the blue pill
+        Args:
+            sleep_ms (int, optional): Amount of time to reset the blue pill
                 expressed in milliseconds.
         """
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.OUTPUT)
         wpi.digitalWrite(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.LOW)
         sleep(sleep_ms / 1000)
-        wpi.digitalWrite(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.HIGH)
-    
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
+
     def dut_reset_soft(self, sleep_ms = 10):
-        pass
+        raise NotImplementedError
 
     def dut_reset_hard(self, sleep_ms = 10):
-        # TODO this should be handled by the power management module
-        prev_power_usb = wpi.digitalRead(self.gpio_conf['usb_en']
-        
-        if prev_power_usb:
-            wpi.digitalWrite(self.gpio_conf['usb_en'], wpi.GPIO.LOW)
-        else:
-            wpi.digitalWrite(self.gpio_conf['ext_v_en'], wpi.GPIO.LOW)
+        """Cycles power to the DUT.
 
+        Args:
+            sleep_ms (int, optional): Amount of time to reset the DUT
+                expressed in milliseconds.
+        """
+        self.power_management.set_power_state('OFF')
         sleep(sleep_ms / 1000)
+        self.power_management.set_power_state('ON')
 
-        if prev_power_usb:
-            wpi.digitalWrite(self.gpio_conf['usb_en'], wpi.GPIO.HIGH)
-        else:
-            wpi.digitalWrite(self.gpio_conf['ext_v_en'], wpi.GPIO.HIGH)
+    def reset_full(self, sleep_ms = 100):
+        """Performs a guaranteed power reset for the DUT and the blue pill
+        board.
 
-        
+        Args:
+            sleep_ms (int, optional): Amount of time to reset the DUT and
+                the blue pill board.
+        """
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.OUTPUT)
+        wpi.digitalWrite(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.LOW)
+        self.power_management.set_power_state('OFF')
+        sleep(sleep_ms / 1000)
+        self.power_management.set_power_state('ON')
+        wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
+
+    def dut_power_set_conf(self, conf):
+        """Sets the power configuration (i.e. the power source) for the DUT.
+
+        Args:
+            conf (string): Power configuration to be applied. 'USB' of 'EXT'
+        """
+        self.power_management.set_power_conf(conf)
+        return self._build_response('dut_power_set_conf({})'.format(conf), \
+                                    None, 'SUCCESS')
+
+    def dut_power_get_conf(self):
+        """Returns the current power configuration (i.e. the power source) for
+        the DUT.
+        """
+        data = self.power_management.power_conf
+        return self._build_response('dut_power_get_conf()', data, 'SUCCESS') 
+
+    def dut_reset_soft(self, sleep_ms = 10):
+        raise NotImplementedError
+
+    def _build_response(self, cmd, data, result, msg = ''):
+        assert result in ('SUCCESS', 'ERROR', 'TIMEOUT'), \
+                          'Invalid result: {}'.format(result)
+        res = {}
+        res['cmd'] = cmd
+        res['data'] = data
+        res['msg'] = msg
+        res['result'] = result
+    
+        return res
