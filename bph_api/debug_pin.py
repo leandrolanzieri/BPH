@@ -18,6 +18,8 @@ class DebugPin(GpioMonitor):
             super().set_gpio_mode('INPUT')
 
     def set_pin_state(self, state):
-        # a chenge of state can only happen in RPI_out mode
-        if self.pin_mode == 'RPI_out':
-            self.set_gpio_state(state)
+        assert self.pin_mode == 'RPI_out', ('A state can only be set when the '
+                                            'debug pin is in "RPI_out" mode')
+
+        # a change of state can only happen in RPI_out mode
+        self.set_gpio_state(state)
