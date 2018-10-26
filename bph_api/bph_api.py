@@ -38,7 +38,7 @@ class BPH_API():
             mode (str): Mode of the pin. Any of 'RPI_out', 'DUT_out', 'BP_out'
         """
         self.debug_pins[pin_number].set_pin_mode(mode)
-        return self._build_response('debug_pin_set_mode({},{})' \
+        return self._build_response('debug_pin_set_mode({}, {})' \
                                     .format(pin_number, mode), \
                                     None, 'SUCCESS')
 
@@ -51,8 +51,19 @@ class BPH_API():
             state (int): State for the pin, either 'high' or 'low'.
         """
         self.debug_pins[pin_number].set_pin_state(state)
-        return self._build_response('debug_pin_set_mode({},{})' \
+        return self._build_response('debug_pin_set_state({},{})' \
                                     .format(pin_number, state), \
+                                    None, 'SUCCESS')
+
+    def debug_pin_get_state(self, pin_number):
+        """Returns the current state of a debug pin.
+
+        Args:
+            pin_number (int): Number of debug pin.
+        """
+        data = self.debug_pin_get_info(pin_number)['state']
+        return self._build_response('debug_pin_get_state({}' \
+                                    .format(pin_number), \
                                     None, 'SUCCESS')
 
     def debug_pin_get_info(self, pin_number):
