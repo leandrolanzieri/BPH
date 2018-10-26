@@ -36,4 +36,4 @@ bph:
                 sch: 'RPI_LO_TRIG'
                 pin: 27
         power_measurement:
-            shunt: 39000
+            shunt: 3900
