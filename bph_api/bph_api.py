@@ -20,7 +20,8 @@ class BPH_API():
         # create debug pins
         self.debug_pins = []
         for idx, debug in enumerate(self.gpio_conf['debug']):
-            self.debug_pins.append(DebugPin(debug['pin'],'DUT_out', 'debug ' + str(idx)))
+            self.debug_pins.append(DebugPin(debug['pin'],'DUT_out', 'debug ' \
+                                                                    + str(idx)))
 
         # initialize BP reset as input, so BP can reset itself
         wpi.pinMode(self.gpio_conf['bp_rst']['pin'], wpi.GPIO.INPUT)
