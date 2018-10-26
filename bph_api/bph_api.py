@@ -29,7 +29,8 @@ class BPH_API():
         # initialize power management module
         self.power_management = PowerManagement( \
                     self.gpio_conf['usb_en']['pin'],\
-                    self.gpio_conf['ext_v_en']['pin'])
+                    self.gpio_conf['ext_v_en']['pin'],
+                    self.hat_conf['power_measurement']['shunt'])
 
     def debug_pin_set_mode(self, pin_number, mode):
         """Sets the mode for a debug pin.

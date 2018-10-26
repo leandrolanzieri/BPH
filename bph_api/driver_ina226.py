@@ -48,9 +48,13 @@ class INA226():
     AVG_512 = 6
     AVG_1024 = 7
 
-    def __init__(self, address, operation_mode, bus_num = 1):
+    SCALE_SHUNT_mV = 2.5e-3
+    SCALE_BUS_mV = 1.25
+
+    def __init__(self, address, operation_mode, shunt_val = 1, bus_num = 1):
         self.bus = smbus.SMBus(bus_num)
         self.address = address
+        self.shunt = shunt_val
 
     def _swap_16(self, word):
         return (((word >> 8) & 0x00FF) | ((word << 8) & 0xFF00))
@@ -69,6 +73,23 @@ class INA226():
         reg |= (value << offset) & mask
         self._write_register(self.REG_CONFIGURATION, reg)
 
+    def _convert_to_mv(self, value, scale):
+        # get sign
+        sign = (value & 0x8000) >> 15
+
+        # two's complement
+        binary = value - 1
+        binary = (~binary) & 0xFFFF
+
+        # scale the value
+        result = value * scale
+
+        # apply sign
+        if sign:
+            result = -result
+
+        return result
+
     def set_operation_mode(self, mode):
         assert mode in range(self.MODE_POWER_DOWN, self.SHUNT_BUS_CONTINUOUS),\
             'Invalid mode {}'.format(mode)
@@ -86,24 +107,30 @@ class INA226():
         return self._read_register(self.REG_DIE_ID)
 
     def get_shunt_voltage(self):
-        return self._read_register(self.REG_SHUNT_VOLTAGE)
+        data = self._read_register(self.REG_SHUNT_VOLTAGE)
+        return self._convert_to_mv(data, self.SCALE_SHUNT_mV)
 
     def get_bus_voltage(self):
-        return self._read_register(self.REG_SHUNT_VOLTAGE)
+        data = self._read_register(self.REG_BUS_VOLTAGE)
+        return self._convert_to_mv(data, self.SCALE_BUS_mV)
 
     def get_current(self):
-        return self._read_register(self.REG_CURRENT)
+        # TODO Use calibration registers instead of calculating current
+        self.last_shunt_v = self.get_shunt_voltage()
+        return self.last_shunt_v / self.shunt
 
     def get_power(self):
-        return self._read_register(self.REG_POWER)
+        current = self.get_current()
+        return current * self.last_shunt_v
 
 if __name__ == '__main__':
     print('Testing INA226 connection')
-
-    dev = INA226(0x44, INA226.MODE_SHUNT_BUS_CONTINUOUS)
+    shunt = 3.9e3 # 3.9K
+    dev = INA226(0x44, INA226.MODE_SHUNT_BUS_CONTINUOUS, shunt_val = shunt)
 
     while True:
         print('ID: {:02x}'.format(dev.get_die_id()))
-        print('BUS: {:02x}'.format(dev.get_bus_voltage()))
-        print('SHUNT: {:02x}'.format(dev.get_shunt_voltage()))
+        print('BUS: {} mV'.format(dev.get_bus_voltage()))
+        print('SHUNT: {} mV'.format(dev.get_shunt_voltage()))
+        print('CURRENT: {} mA'.format(dev.get_current()))
         sleep(2)
