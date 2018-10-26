@@ -46,7 +46,6 @@ class PowerManagement:
         prev_conf = self.power_conf
         self.set_power_conf('EXT')
 
-        # TODO check this mode get
         prev_mode = wpi.getAlt(self.bp_rst_pin)
         prev_state = wpi.digitalRead(self.bp_rst_pin)
 
@@ -64,7 +63,6 @@ class PowerManagement:
 
         # restore the blue pill to previous state
         wpi.pinMode(self.bp_rst_pin, prev_mode)
-        # TODO check if this works even as output
         wpi.digitalWrite(self.bp_rst_pin, prev_state)
 
         # restore power configuration to previous state
