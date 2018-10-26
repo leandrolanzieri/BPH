@@ -18,10 +18,7 @@ class GpioMonitor():
         if self.gpio['mode'] == 'OUTPUT':
             previous = 'HIGH' if wpi.digitalRead(self.gpio['gpio']) else 'LOW'
             wpi.digitalWrite(self.gpio['gpio'], state == 'HIGH')
-            
-            if previous != state:
-                self._log_event(state)
-    
+
     def set_gpio_mode(self, mode):
         assert mode in ('OUTPUT', 'INPUT')
         # check correct mode
@@ -37,6 +34,12 @@ class GpioMonitor():
         self.log_enable = log_enable
         self.gpio = {'name': name, 'gpio': gpio}
         self.gpio['events'] = collections.deque(maxlen=log_buffer)
+        self.gpio['mode'] = None
+
+        # register the callback before setting the mode, otherwise it
+        # won't work
+        wpi.wiringPiISR(self.gpio['gpio'], wpi.GPIO.INT_EDGE_BOTH,
+                        self._state_change_cb)
 
         if mode == 'INPUT':
             self._set_gpio_input()
@@ -44,19 +47,20 @@ class GpioMonitor():
             self._set_gpio_output()
 
     def _set_gpio_input(self):
-        self.gpio['mode'] = 'INPUT'
-        wpi.pinMode(self.gpio['gpio'], wpi.GPIO.INPUT)
-        wpi.wiringPiISR(self.gpio['gpio'], wpi.GPIO.INT_EDGE_BOTH,
-                        self._gpio_cb)
-        self._log_event('mode_change')
+        if self.gpio['mode'] != 'INPUT':
+            self.gpio['mode'] = 'INPUT'
+            wpi.pinMode(self.gpio['gpio'], wpi.GPIO.INPUT)
+            self._log_event('MODE_CHANGE')
 
     def _set_gpio_output(self):
-        self.gpio['mode'] = 'OUTPUT'
-        wpi.pinMode(self.gpio['gpio'], wpi.GPIO.OUTPUT)
-        self._log_event('mode_change')
+        print('Setting ' + self.gpio['name'] + ' as output')
+        if self.gpio['mode'] != 'OUTPUT':
+            self.gpio['mode'] = 'OUTPUT'
+            wpi.pinMode(self.gpio['gpio'], wpi.GPIO.OUTPUT)
+            self._log_event('MODE_CHANGE')
 
-    def _gpio_cb(self):
-        type = 'rise' if wpi.digitalRead(self.gpio['gpio']) else 'fall'
+    def _state_change_cb(self):
+        type = 'RAISE' if wpi.digitalRead(self.gpio['gpio']) else 'FALL'
         self._log_event(type)
     
     def _log_event(self, type):
