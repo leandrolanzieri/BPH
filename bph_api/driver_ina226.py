@@ -116,12 +116,13 @@ class INA226():
 
     def get_current(self):
         # TODO Use calibration registers instead of calculating current
-        self.last_shunt_v = self.get_shunt_voltage()
-        return self.last_shunt_v / self.shunt
+        shunt_v = self.get_shunt_voltage() # in mV
+        return shunt_v / self.shunt # in mA
 
     def get_power(self):
+        # TODO Use calibration registers instead of calculating power
         current = self.get_current()
-        return current * self.last_shunt_v
+        return current * self.get_bus_voltage() * 1e-3 # in mW
 
 if __name__ == '__main__':
     print('Testing INA226 connection')

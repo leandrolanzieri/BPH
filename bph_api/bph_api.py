@@ -28,9 +28,10 @@ class BPH_API():
 
         # initialize power management module
         self.power_management = PowerManagement( \
-                    self.gpio_conf['usb_en']['pin'],\
-                    self.gpio_conf['ext_v_en']['pin'],
-                    self.hat_conf['power_measurement']['shunt'])
+            self.gpio_conf['usb_en']['pin'],\
+            self.gpio_conf['ext_v_en']['pin'],
+            self.gpio_conf['bp_rst']['pin'],
+            self.hat_conf['bph']['configuration']['power_measurement']['shunt'])
 
     def debug_pin_set_mode(self, pin_number, mode):
         """Sets the mode for a debug pin.
@@ -171,8 +172,13 @@ class BPH_API():
         data = self.power_management.power_conf
         return self._build_response('dut_power_get_conf()', data, 'SUCCESS') 
 
-    def dut_reset_soft(self, sleep_ms = 10):
-        raise NotImplementedError
+    def dut_power_get_measurement(self):
+        """Returns a power measurement of the DUT.
+        """
+        data = self.power_management.get_power_measurement()
+        return self._build_response('dut_power_get_measurement()', data, \
+                'SUCCESS', ('measures voltage [mV],',
+                            'current [mA]  and power [mW] of the DUT'))
 
     def _build_response(self, cmd, data, result, msg = ''):
         """Returns a formatted response according to the Philip Test specs.

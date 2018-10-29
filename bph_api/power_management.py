@@ -57,7 +57,7 @@ class PowerManagement:
         # this may change if average on INA226 is increased
         sleep(2.2 / 1000)
 
-        voltage = self.meas_dev.get_shunt_voltage()
+        voltage = self.meas_dev.get_bus_voltage()
         current = self.meas_dev.get_current()
         power = self.meas_dev.get_power()
 
@@ -67,4 +67,7 @@ class PowerManagement:
 
         # restore power configuration to previous state
         self.set_power_conf(prev_conf)
+
+        return {'dut_voltage': voltage, 'dut_current': current, \
+                'dut_power': power}
 
