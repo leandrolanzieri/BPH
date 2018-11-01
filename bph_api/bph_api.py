@@ -5,6 +5,7 @@ from heartbeat import HeartBeat
 from power_management import PowerManagement
 from time import sleep
 import wiringpi as wpi
+import os
 
 class BPH_API():
     def __init__(self, conf_path='../BPH-1A/bph_conf.yaml'):
@@ -79,7 +80,17 @@ class BPH_API():
         return self._build_response('debug_pin_get_info({})' \
                                     .format(pin_number), \
                                     data, 'SUCCESS')
+    
+    def bp_bootloader_write(self, bin_path):
+        boot0Pin = self.gpio_conf['boot'][0]['pin']
+        resetPin = self.gpio_conf['bp_rst']['pin']
+        result = os.system("python2 stm32loader.py -e -w -p /dev/ttyAMA0 " + \
+                  str(boot0Pin) + " " + str(resetPin) + " " +  bin_path)
 
+        result_str = 'SUCCESS' if result == 0 else 'ERROR'
+        return self._build_response( \
+                'bp_bootloader_write({})'.format(bin_path), result, result_str)
+        
     def bp_hb_get_state(self):
         """Returns the current state of the heartbeat pin.
         """

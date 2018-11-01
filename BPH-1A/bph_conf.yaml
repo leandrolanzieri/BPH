@@ -10,7 +10,7 @@ bph:
                 pin: 22
             boot:
               - sch: 'BOOT0'
-                pin: 13,
+                pin: 13
               - sch: 'BOOT1'
                 pin: 16
             usb_en:
