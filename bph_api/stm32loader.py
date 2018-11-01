@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
-# vim: sw=4:ts=4:si:et:enc=utf-8
 
 # Author: Ivan A-R <ivan@tuxotronic.org>
 # Project page: http://tuxotronic.org/wiki/projects/stm32loader
@@ -58,14 +57,17 @@ class CmdException(Exception):
     pass
 
 class CommandInterface:
-    def __init__(self, dtr_pin, rts_pin):
-        wpi.wiringPinSetupGpio()
-        self.DTRPin = DTRPin
-        self.RTSPin = RTSPin
-        extended_erase = 0
-
-        wpi.pinMode(DTRPin, wpi.GPIO.OUTPUT)
-        wpi.pinMode(RTSPin, wpi.GPIO.OUTPUT)
+    def __init__(self, boot0Pin, rstPin):
+        wpi.wiringPiSetupGpio()
+        self.boot0Pin = boot0Pin
+        self.rstPin = rstPin
+        self.extended_erase = 0
+        
+        wpi.pinMode(boot0Pin, wpi.GPIO.OUTPUT)
+        wpi.digitalWrite(boot0Pin, wpi.GPIO.LOW)
+        time.sleep(0.1)
+        wpi.pinMode(rstPin, wpi.GPIO.OUTPUT)
+        wpi.digitalWrite(rstPin, wpi.GPIO.HIGH)
 
     def open(self, aport='/dev/tty.usbserial-ftCYPMYJ', abaudrate=115200) :
         self.sp = serial.Serial(
@@ -99,21 +101,21 @@ class CommandInterface:
                     raise CmdException("Unknown response. "+info+": "+hex(ask))
 
 
-    def setDTR(self, state):
-        wpi.digitalWrite(self.DTRPin, state)
+    def setBoot0(self, state):
+        wpi.digitalWrite(self.boot0Pin, state)
     
-    def setRTS(self, state):
-        wpi.digitalWrite(self.RTSPin, state)
+    def setRst(self, state):
+        wpi.digitalWrite(self.rstPin, state)
 
     def reset(self):
-        self.setDTR(0)
+        self.setRst(0)
         time.sleep(0.1)
-        self.setDTR(1)
+        self.setRst(1)
         time.sleep(0.5)
 
     def initChip(self):
         # Set boot
-        self.setRTS(0)
+        self.setBoot0(1) #0
         time.sleep(1)
         self.reset()
 
@@ -121,7 +123,7 @@ class CommandInterface:
         return self._wait_for_ask("Syncro")
 
     def releaseChip(self):
-        self.setRTS(1)
+        self.setBoot0(0) #1
         self.reset()
 
     def cmdGeneric(self, cmd):
@@ -351,7 +353,7 @@ class CommandInterface:
 
 
 def usage():
-    print """Usage: %s [-hqVewvr] [-l length] [-p port] [-b baud] [-a addr] [-g addr] [DTR Pin] [RTS Pin] [file.bin]
+    print """Usage: %s [-hqVewvr] [-l length] [-p port] [-b baud] [-a addr] [-g addr] [BOOT0 pin] [Reset Pin] [file.bin]
     -h          This help
     -q          Quiet
     -V          Verbose
@@ -433,7 +435,7 @@ if __name__ == "__main__":
         else:
             assert False, "unhandled option"
 
-    cmd = CommandInterface(12, 13)
+    cmd = CommandInterface(eval(args[0]), eval(args[1]))
     cmd.open(conf['port'], conf['baud'])
     mdebug(10, "Open port %(port)s, baud %(baud)d" % {'port':conf['port'], 'baud':conf['baud']})
     try:
